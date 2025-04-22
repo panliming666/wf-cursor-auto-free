@@ -4,12 +4,6 @@ on:
   push:
     tags:
       - 'v*'  # 添加标签触发条件，匹配 v1.0.0 这样的标签
-  workflow_dispatch:  # 添加手动触发功能
-    inputs:
-      reason:
-        description: '触发构建的原因'
-        required: false
-        default: '手动触发构建'
 
 jobs:
   build-windows:
@@ -21,48 +15,23 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.10'
+        python-version: '3.x'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install wheel  # 确保有wheel支持
+        pip install pyinstaller
         pip install -r requirements.txt
         
-    - name: Verify PyQt5 installation
-      run: |
-        # 使用英文输出，避免编码问题
-        python -c "import PyQt5; from PyQt5 import QtCore; print('PyQt5 version:', QtCore.PYQT_VERSION_STR)"
-    
-    - name: Check cursor_pro_gui.py
-      run: |
-        # 检查cursor_pro_gui.py文件是否存在
-        if (Test-Path cursor_pro_gui.py) {
-          echo "cursor_pro_gui.py exists"
-        } else {
-          echo "ERROR: cursor_pro_gui.py does not exist!"
-          Get-ChildItem
-          exit 1
-        }
-        
-    - name: Build EXE (CLI Version)
+    - name: Build EXE
       run: |
         pyinstaller CursorKeepAlive.spec
         
-    - name: Build EXE (GUI Version)
+    - name: Build GUI EXE
       run: |
-        # 创建新的spec文件 - 确保包含所有必要的 PyQt5 子模块
-        echo "# -*- mode: python ; coding: utf-8 -*-" > CursorProGUI.spec
-        echo "block_cipher = None" >> CursorProGUI.spec
-        echo "a = Analysis(['cursor_pro_gui.py'], pathex=['.'], binaries=[], datas=[], hiddenimports=['PyQt5', 'PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui', 'PyQt5.sip'], hookspath=[], runtime_hooks=[], excludes=[], win_no_prefer_redirects=False, win_private_assemblies=False, cipher=block_cipher, noarchive=False)" >> CursorProGUI.spec
-        echo "pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)" >> CursorProGUI.spec
-        echo "exe = EXE(pyz, a.scripts, a.binaries, a.zipfiles, a.datas, [], name='CursorProGUI', debug=False, bootloader_ignore_signals=False, strip=False, upx=True, upx_exclude=[], runtime_tmpdir=None, console=True)" >> CursorProGUI.spec
+        pyinstaller CursorProGUI.spec
         
-        # 设置环境变量 - 使用英文输出避免编码问题
-        python -c "import os, sys; import PyQt5; from PyQt5 import QtCore; plugins_dir = os.path.join(os.path.dirname(PyQt5.__file__), 'Qt5', 'plugins'); print('Setting QT_PLUGIN_PATH=' + plugins_dir); os.environ['QT_PLUGIN_PATH'] = plugins_dir if os.path.exists(plugins_dir) else ''"
-        pyinstaller --clean CursorProGUI.spec -v
-        
-    - name: Upload Windows CLI artifact
+    - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
         name: CursorPro-Windows
@@ -83,56 +52,23 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.10'
+        python-version: '3.x'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install wheel
-        
-        # macOS需要一些基本的X11组件以支持PyQt5
-        brew install pkg-config
-        
-        # 安装依赖 - 通过多种方式尝试安装PyQt5
+        pip install pyinstaller
         pip install -r requirements.txt
         
-        # 备用方案：尝试通过PyQtWebEngine安装PyQt5
-        pip install --only-binary=:all: PyQtWebEngine
-        
-    - name: Verify PyQt5 installation
-      run: |
-        # 使用英文输出，避免编码问题
-        python -c "import PyQt5; from PyQt5 import QtCore; print('PyQt5 version:', QtCore.PYQT_VERSION_STR)"
-    
-    - name: Check cursor_pro_gui.py
-      run: |
-        # 检查cursor_pro_gui.py文件是否存在
-        if [ -f cursor_pro_gui.py ]; then
-          echo "cursor_pro_gui.py exists"
-        else
-          echo "ERROR: cursor_pro_gui.py does not exist!"
-          ls -la
-          exit 1
-        fi
-        
-    - name: Build MacOS ARM executable (CLI Version)
+    - name: Build MacOS ARM executable
       run: |
         pyinstaller CursorKeepAlive.spec
         
-    - name: Build MacOS ARM executable (GUI Version)
+    - name: Build MacOS ARM GUI executable
       run: |
-        # 创建新的spec文件 - 确保包含所有必要的 PyQt5 子模块
-        echo "# -*- mode: python ; coding: utf-8 -*-" > CursorProGUI.spec
-        echo "block_cipher = None" >> CursorProGUI.spec
-        echo "a = Analysis(['cursor_pro_gui.py'], pathex=['.'], binaries=[], datas=[], hiddenimports=['PyQt5', 'PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui', 'PyQt5.sip'], hookspath=[], runtime_hooks=[], excludes=[], win_no_prefer_redirects=False, win_private_assemblies=False, cipher=block_cipher, noarchive=False)" >> CursorProGUI.spec
-        echo "pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)" >> CursorProGUI.spec
-        echo "exe = EXE(pyz, a.scripts, a.binaries, a.zipfiles, a.datas, [], name='CursorProGUI', debug=False, bootloader_ignore_signals=False, strip=False, upx=True, upx_exclude=[], runtime_tmpdir=None, console=True)" >> CursorProGUI.spec
+        pyinstaller CursorProGUI.spec
         
-        # 设置环境变量 - 使用英文输出避免编码问题
-        python -c "import os, sys; import PyQt5; from PyQt5 import QtCore; plugins_dir = os.path.join(os.path.dirname(PyQt5.__file__), 'Qt5', 'plugins'); print('Setting QT_PLUGIN_PATH=' + plugins_dir); os.environ['QT_PLUGIN_PATH'] = plugins_dir if os.path.exists(plugins_dir) else ''"
-        pyinstaller --clean CursorProGUI.spec -v
-        
-    - name: Upload MacOS ARM CLI artifact
+    - name: Upload MacOS ARM artifact
       uses: actions/upload-artifact@v4
       with:
         name: CursorPro-MacOS-ARM64
@@ -153,53 +89,23 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.10'
+        python-version: '3.x'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install wheel  # 确保有wheel支持
-        
-        # 安装 Qt 依赖库 (Linux 特有)
-        sudo apt-get update
-        sudo apt-get install -y libdbus-1-3 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0 libxcb-cursor0
-        
+        pip install pyinstaller
         pip install -r requirements.txt
         
-    - name: Verify PyQt5 installation
-      run: |
-        # 使用英文输出，避免编码问题
-        python -c "import PyQt5; from PyQt5 import QtCore; print('PyQt5 version:', QtCore.PYQT_VERSION_STR)"
-    
-    - name: Check cursor_pro_gui.py
-      run: |
-        # 检查cursor_pro_gui.py文件是否存在
-        if [ -f cursor_pro_gui.py ]; then
-          echo "cursor_pro_gui.py exists"
-        else
-          echo "ERROR: cursor_pro_gui.py does not exist!"
-          ls -la
-          exit 1
-        fi
-        
-    - name: Build Linux executable (CLI Version)
+    - name: Build Linux executable
       run: |
         pyinstaller CursorKeepAlive.spec
         
-    - name: Build Linux executable (GUI Version)
+    - name: Build Linux GUI executable
       run: |
-        # 创建新的spec文件 - 确保包含所有必要的 PyQt5 子模块
-        echo "# -*- mode: python ; coding: utf-8 -*-" > CursorProGUI.spec
-        echo "block_cipher = None" >> CursorProGUI.spec
-        echo "a = Analysis(['cursor_pro_gui.py'], pathex=['.'], binaries=[], datas=[], hiddenimports=['PyQt5', 'PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui', 'PyQt5.sip'], hookspath=[], runtime_hooks=[], excludes=[], win_no_prefer_redirects=False, win_private_assemblies=False, cipher=block_cipher, noarchive=False)" >> CursorProGUI.spec
-        echo "pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)" >> CursorProGUI.spec
-        echo "exe = EXE(pyz, a.scripts, a.binaries, a.zipfiles, a.datas, [], name='CursorProGUI', debug=False, bootloader_ignore_signals=False, strip=False, upx=True, upx_exclude=[], runtime_tmpdir=None, console=True)" >> CursorProGUI.spec
+        pyinstaller CursorProGUI.spec
         
-        # 设置环境变量 - 使用英文输出避免编码问题
-        python -c "import os, sys; import PyQt5; from PyQt5 import QtCore; plugins_dir = os.path.join(os.path.dirname(PyQt5.__file__), 'Qt5', 'plugins'); print('Setting QT_PLUGIN_PATH=' + plugins_dir); os.environ['QT_PLUGIN_PATH'] = plugins_dir if os.path.exists(plugins_dir) else ''"
-        pyinstaller --clean CursorProGUI.spec -v
-        
-    - name: Upload Linux CLI artifact
+    - name: Upload Linux artifact
       uses: actions/upload-artifact@v4
       with:
         name: CursorPro-Linux
@@ -220,60 +126,27 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.10'
+        python-version: '3.x'
 
     - name: Install dependencies
       run: |
         arch -x86_64 pip3 install --upgrade pip
-        arch -x86_64 pip3 install wheel
-        
-        # macOS需要一些基本的X11组件以支持PyQt5
-        arch -x86_64 brew install pkg-config
-        
-        # 安装依赖 - 通过多种方式尝试安装PyQt5
+        arch -x86_64 pip3 install pyinstaller
         arch -x86_64 pip3 install -r requirements.txt
-        
-        # 备用方案：尝试通过PyQtWebEngine安装PyQt5
-        arch -x86_64 pip3 install --only-binary=:all: PyQtWebEngine
-    
-    - name: Verify PyQt5 installation
-      run: |
-        # 使用英文输出，避免编码问题
-        arch -x86_64 python3 -c "import PyQt5; from PyQt5 import QtCore; print('PyQt5 version:', QtCore.PYQT_VERSION_STR)"
-    
-    - name: Check cursor_pro_gui.py
-      run: |
-        # 检查cursor_pro_gui.py文件是否存在
-        if [ -f cursor_pro_gui.py ]; then
-          echo "cursor_pro_gui.py exists"
-        else
-          echo "ERROR: cursor_pro_gui.py does not exist!"
-          ls -la
-          exit 1
-        fi
 
-    - name: Build MacOS Intel executable (CLI Version)
+    - name: Build MacOS Intel executable
       env:
         TARGET_ARCH: 'x86_64'
       run: |
         arch -x86_64 python3 -m PyInstaller CursorKeepAlive.spec
         
-    - name: Build MacOS Intel executable (GUI Version)
+    - name: Build MacOS Intel GUI executable
       env:
         TARGET_ARCH: 'x86_64'
       run: |
-        # 创建新的spec文件 - 确保包含所有必要的 PyQt5 子模块
-        echo "# -*- mode: python ; coding: utf-8 -*-" > CursorProGUI.spec
-        echo "block_cipher = None" >> CursorProGUI.spec
-        echo "a = Analysis(['cursor_pro_gui.py'], pathex=['.'], binaries=[], datas=[], hiddenimports=['PyQt5', 'PyQt5.QtCore', 'PyQt5.QtWidgets', 'PyQt5.QtGui', 'PyQt5.sip'], hookspath=[], runtime_hooks=[], excludes=[], win_no_prefer_redirects=False, win_private_assemblies=False, cipher=block_cipher, noarchive=False)" >> CursorProGUI.spec
-        echo "pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)" >> CursorProGUI.spec
-        echo "exe = EXE(pyz, a.scripts, a.binaries, a.zipfiles, a.datas, [], name='CursorProGUI', debug=False, bootloader_ignore_signals=False, strip=False, upx=True, upx_exclude=[], runtime_tmpdir=None, console=True)" >> CursorProGUI.spec
+        arch -x86_64 python3 -m PyInstaller CursorProGUI.spec
         
-        # 设置环境变量 - 使用英文输出避免编码问题
-        arch -x86_64 python3 -c "import os, sys; import PyQt5; from PyQt5 import QtCore; plugins_dir = os.path.join(os.path.dirname(PyQt5.__file__), 'Qt5', 'plugins'); print('Setting QT_PLUGIN_PATH=' + plugins_dir); os.environ['QT_PLUGIN_PATH'] = plugins_dir if os.path.exists(plugins_dir) else ''"
-        arch -x86_64 python3 -m PyInstaller --clean CursorProGUI.spec -v
-        
-    - name: Upload MacOS Intel CLI artifact
+    - name: Upload MacOS Intel artifact
       uses: actions/upload-artifact@v4
       with:
         name: CursorPro-MacOS-Intel
@@ -288,8 +161,7 @@ jobs:
   create-release:
     needs: [build-windows, build-macos-arm64, build-linux, build-macos-intel]
     runs-on: ubuntu-22.04
-    # 当有标签推送或手动触发时创建发布
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.ref, 'refs/tags/')
     
     steps:
       - name: Download all artifacts
@@ -309,16 +181,10 @@ jobs:
           zip -r CursorPro-MacOS-Intel.zip CursorPro-MacOS-Intel/
           zip -r CursorProGUI-MacOS-Intel.zip CursorProGUI-MacOS-Intel/
 
-      - name: Set release tag for manual trigger
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          echo "RELEASE_TAG=manual-build-$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
-        
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && env.RELEASE_TAG || github.ref }}
-          name: ${{ github.event_name == 'workflow_dispatch' && format('手动构建 {0}', env.RELEASE_TAG) || github.ref_name }}
           files: |
             artifacts/CursorPro-Windows.zip
             artifacts/CursorProGUI-Windows.zip
@@ -328,6 +194,6 @@ jobs:
             artifacts/CursorProGUI-Linux.zip
             artifacts/CursorPro-MacOS-Intel.zip
             artifacts/CursorProGUI-MacOS-Intel.zip
-          generate_release_notes: true
+
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
