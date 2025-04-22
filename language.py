@@ -199,7 +199,23 @@ class Language:
                 "using_account": "使用账号: {email}",
                 "incomplete_account_info": "账号信息不完整，缺少必要字段",
                 "apply_account_failed": "应用账号信息失败",
-                "apply_account_error": "应用账号时出错: {error}"
+                "apply_account_error": "应用账号时出错: {error}",
+                
+                # GUI related messages
+                "closing_browser": "正在关闭浏览器...",
+                "browser_closed": "浏览器已关闭",
+                "polling_login_result": "正在轮询登录结果...",
+                "login_successful": "登录成功！",
+                "waiting_for_code": "等待验证码中...",
+                "code_received": "已接收到验证码！",
+                "applying_settings": "正在应用设置...",
+                "settings_applied": "设置已应用",
+                "initializing_ui": "正在初始化界面...",
+                "ui_ready": "界面已就绪",
+                "processing_request": "正在处理请求...",
+                "request_completed": "请求已完成",
+                "connection_failed": "连接失败",
+                "retrying_connection": "正在重新连接..."
             },
             "en": {
                 # System messages
@@ -396,7 +412,23 @@ class Language:
                 "using_account": "Using account: {email}",
                 "incomplete_account_info": "Incomplete account information, missing required fields",
                 "apply_account_failed": "Failed to apply account information",
-                "apply_account_error": "Error applying account: {error}"
+                "apply_account_error": "Error applying account: {error}",
+                
+                # GUI related messages
+                "closing_browser": "Closing browser...",
+                "browser_closed": "Browser closed",
+                "polling_login_result": "Polling for login result...",
+                "login_successful": "Login successful!",
+                "waiting_for_code": "Waiting for verification code...",
+                "code_received": "Verification code received!",
+                "applying_settings": "Applying settings...",
+                "settings_applied": "Settings applied",
+                "initializing_ui": "Initializing user interface...",
+                "ui_ready": "User interface ready",
+                "processing_request": "Processing request...",
+                "request_completed": "Request completed",
+                "connection_failed": "Connection failed",
+                "retrying_connection": "Retrying connection..."
             }
         }
     

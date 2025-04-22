@@ -2,6 +2,104 @@ import os
 import sys
 import platform
 import random
+import subprocess
+import ctypes
+import sys
+import traceback
+
+def is_admin():
+    """
+    检查当前进程是否具有管理员/root权限
+    
+    Returns:
+        bool: 如果具有管理员权限则返回True，否则返回False
+    """
+    try:
+        if platform.system() == "Windows":
+            return ctypes.windll.shell32.IsUserAnAdmin() != 0
+        else:  # Linux & macOS (Unix-like)
+            return os.geteuid() == 0  # 0是root用户的ID
+    except Exception as e:
+        print(f"检查管理员权限时出错: {e}")
+        # 如果无法检测，返回False以便程序尝试获取权限
+        return False
+
+def restart_as_admin():
+    """
+    以管理员/root权限重新启动当前程序
+    
+    Returns:
+        bool: 如果成功启动了提权进程则返回True，否则返回False
+    """
+    try:
+        # 获取当前脚本的完整路径
+        script = sys.argv[0]
+        args = sys.argv[1:]
+        
+        if platform.system() == "Windows":
+            # Windows 系统使用 ShellExecute 以管理员身份运行
+            ctypes.windll.shell32.ShellExecuteW(
+                None,  # hwnd
+                "runas",  # 操作 - "runas"表示以管理员身份运行
+                sys.executable,  # 程序
+                f'"{script}" {" ".join(args)}',  # 参数
+                None,  # 默认目录
+                1  # SW_SHOWNORMAL - 正常显示窗口
+            )
+            return True  # Windows下ShellExecuteW不会抛出异常，除非返回值<=32
+            
+        elif platform.system() == "Darwin":  # macOS
+            # macOS 下使用 osascript 执行AppleScript以获取管理员权限
+            cmd = [
+                'osascript', '-e', 
+                'do shell script "' + sys.executable + ' \\"' + script + '\\" ' + ' '.join(args) + '" with administrator privileges'
+            ]
+            subprocess.Popen(cmd)
+            return True
+            
+        else:  # Linux
+            # Linux下使用pkexec, sudo或gksu
+            for tool in ["pkexec", "sudo", "gksudo", "kdesudo"]:
+                try:
+                    if subprocess.call(["which", tool], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+                        # 工具存在，使用它
+                        cmd = [tool, sys.executable, script] + args
+                        subprocess.Popen(cmd)
+                        return True
+                except:
+                    continue
+                    
+            # 如果没有找到任何提权工具，则尝试使用sudo（可能会在终端要求密码）
+            try:
+                cmd = ["sudo", sys.executable, script] + args
+                subprocess.Popen(cmd)
+                return True
+            except:
+                pass
+                
+        # 如果所有尝试都失败
+        return False
+        
+    except Exception as e:
+        print(f"尝试以管理员权限重启程序时出错: {e}")
+        traceback.print_exc()
+        return False
+        
+def ensure_admin():
+    """
+    确保程序以管理员权限运行，如果不是则尝试重启
+    
+    Returns:
+        bool: 如果程序已经有管理员权限或成功重启则返回True，否则返回False
+    """
+    if is_admin():
+        return True
+    else:
+        success = restart_as_admin()
+        if success:
+            # 退出当前非管理员实例
+            sys.exit(0)
+        return False
 
 def get_user_documents_path():
     """Get user documents path"""
