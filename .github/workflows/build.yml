@@ -21,7 +21,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: '3.10'
     
     - name: Install dependencies
       run: |
@@ -83,7 +83,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: '3.10'
     
     - name: Install dependencies
       run: |
@@ -93,8 +93,11 @@ jobs:
         # macOS需要一些基本的X11组件以支持PyQt5
         brew install pkg-config
         
-        # 安装依赖
+        # 安装依赖 - 通过多种方式尝试安装PyQt5
         pip install -r requirements.txt
+        
+        # 备用方案：尝试通过PyQtWebEngine安装PyQt5
+        pip install --only-binary=:all: PyQtWebEngine
         
     - name: Verify PyQt5 installation
       run: |
@@ -150,7 +153,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: '3.10'
     
     - name: Install dependencies
       run: |
@@ -217,7 +220,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: '3.10'
 
     - name: Install dependencies
       run: |
@@ -227,8 +230,11 @@ jobs:
         # macOS需要一些基本的X11组件以支持PyQt5
         arch -x86_64 brew install pkg-config
         
-        # 安装依赖
+        # 安装依赖 - 通过多种方式尝试安装PyQt5
         arch -x86_64 pip3 install -r requirements.txt
+        
+        # 备用方案：尝试通过PyQtWebEngine安装PyQt5
+        arch -x86_64 pip3 install --only-binary=:all: PyQtWebEngine
     
     - name: Verify PyQt5 installation
       run: |

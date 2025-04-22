@@ -2,7 +2,5 @@ DrissionPage==4.1.0.9
 colorama==0.4.6
 python-dotenv
 pyinstaller>=6.3.0
-PyQt5==5.15.7
-PyQt5-sip>=12.8.0
-PyQt5-Qt5>=5.15.2
+PyQt5==5.15.10
 requests
