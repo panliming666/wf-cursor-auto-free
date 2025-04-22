@@ -22,7 +22,6 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-        cache: 'pip'
     
     - name: Install dependencies
       run: |
@@ -85,12 +84,16 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-        cache: 'pip'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install wheel  # 确保有wheel支持
+        pip install wheel
+        
+        # macOS需要一些基本的X11组件以支持PyQt5
+        brew install pkg-config
+        
+        # 安装依赖
         pip install -r requirements.txt
         
     - name: Verify PyQt5 installation
@@ -215,12 +218,16 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-        cache: 'pip'
 
     - name: Install dependencies
       run: |
         arch -x86_64 pip3 install --upgrade pip
-        arch -x86_64 pip3 install wheel  # 确保有wheel支持
+        arch -x86_64 pip3 install wheel
+        
+        # macOS需要一些基本的X11组件以支持PyQt5
+        arch -x86_64 brew install pkg-config
+        
+        # 安装依赖
         arch -x86_64 pip3 install -r requirements.txt
     
     - name: Verify PyQt5 installation
