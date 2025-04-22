@@ -6,11 +6,7 @@ a = Analysis(
     ['cursor_pro_gui.py'],
     pathex=[],
     binaries=[],
-    datas=[
-        ('icons', 'icons'),
-        ('translations', 'translations'),
-        ('gui', 'gui')
-    ],
+    datas=[],
     hiddenimports=[
         'PyQt5.QtWidgets', 
         'PyQt5.QtCore', 
@@ -48,5 +44,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icons/logo.ico',
+    icon=None,
 ) 
