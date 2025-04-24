@@ -469,7 +469,6 @@ class CursorProKeepAlive:
                         
                         # Check verification result
                         if check_verification_success(tab):
-                            logging.info(get_translation("turnstile_verification_passed"))
                             save_screenshot(tab, "success")
                             return True
                         

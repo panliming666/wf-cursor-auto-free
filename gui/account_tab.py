@@ -400,7 +400,7 @@ class AccountTab(QWidget):
         access_token = account_data.get('access_token', '')
         refresh_token = account_data.get('refresh_token', '')
         
-        # 构建格式化的HTML显示，使用更现代的卡片样式
+        # 构建格式化的HTML显示，使用更现代的卡片样式和垂直布局
         html = f"""
         <style>
             body {{
@@ -427,25 +427,30 @@ class AccountTab(QWidget):
                 padding-bottom: 8px;
             }}
             .field {{
-                margin-bottom: 8px;
-                display: flex;
+                margin-bottom: 12px;
             }}
             .field-name {{
                 font-weight: bold;
-                width: 100px;
                 color: #555;
+                margin-bottom: 4px;
             }}
             .field-value {{
-                flex: 1;
+                background-color: #ffffff;
+                padding: 6px 10px;
+                border-radius: 4px;
+                border: 1px solid #e0e0e0;
             }}
             .token {{
                 color: #707070;
                 font-family: monospace;
                 font-size: 12px;
                 background-color: #f1f3f4;
-                padding: 4px 8px;
-                border-radius: 3px;
+                padding: 8px;
+                border-radius: 4px;
                 word-break: break-all;
+                border: 1px solid #e0e0e0;
+                max-height: 100px;
+                overflow-y: auto;
             }}
             .timestamp {{
                 color: #0d47a1;
@@ -455,33 +460,34 @@ class AccountTab(QWidget):
         
         <div class="card">
             <h3 class="card-title">{self.tr('基本信息')}</h3>
+            
             <div class="field">
-                <div class="field-name">{self.tr('电子邮箱')}:</div>
+                <div class="field-name">{self.tr('电子邮箱')}</div>
                 <div class="field-value">{email}</div>
             </div>
+            
             <div class="field">
-                <div class="field-name">{self.tr('密码')}:</div>
+                <div class="field-name">{self.tr('密码')}</div>
                 <div class="field-value">{password}</div>
             </div>
+            
             <div class="field">
-                <div class="field-name">{self.tr('创建时间')}:</div>
+                <div class="field-name">{self.tr('创建时间')}</div>
                 <div class="field-value timestamp">{created_time}</div>
             </div>
         </div>
         
         <div class="card">
             <h3 class="card-title">{self.tr('授权令牌')}</h3>
+            
             <div class="field">
-                <div class="field-name">{self.tr('访问令牌')}:</div>
-                <div class="field-value">
-                    <div class="token">{access_token[:20]}{'...' if len(access_token) > 20 else ''}</div>
-                </div>
+                <div class="field-name">{self.tr('访问令牌')}</div>
+                <div class="token">{access_token if access_token else self.tr('未设置')}</div>
             </div>
+            
             <div class="field">
-                <div class="field-name">{self.tr('刷新令牌')}:</div>
-                <div class="field-value">
-                    <div class="token">{refresh_token[:20]}{'...' if len(refresh_token) > 20 else ''}</div>
-                </div>
+                <div class="field-name">{self.tr('刷新令牌')}</div>
+                <div class="token">{refresh_token if refresh_token else self.tr('未设置')}</div>
             </div>
         </div>
         """

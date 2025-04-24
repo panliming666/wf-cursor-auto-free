@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# pyinstaller: --noconsole, --onefile, --name=CursorProGUI, --uac-admin, --add-data=turnstilePatch:turnstilePatch
 
 """
 Cursor Pro GUI - 基于PyQt5的图形界面程序
@@ -8,8 +9,43 @@ Cursor Pro GUI - 基于PyQt5的图形界面程序
 
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QStatusBar, QLabel
-from PyQt5.QtCore import QTranslator, QLocale, QSettings
+import logging
+import platform
+
+# 设置日志配置 - 打包后使用文件日志而非控制台
+is_packaged = getattr(sys, 'frozen', False)
+if is_packaged:
+    # 运行在打包后的环境中，重定向日志到文件
+    log_dir = os.path.join(os.path.expanduser('~'), 'CursorProGUI_logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    log_file = os.path.join(log_dir, 'cursorpro_gui.log')
+    logging.basicConfig(
+        filename=log_file,
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+else:
+    # 开发环境，使用控制台日志
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
+# 提前导入管理员权限检查函数，这样如果有错误我们可以尽早捕获
+try:
+    from utils import is_admin
+    # 记录权限状态
+    if is_admin():
+        logging.info("以管理员权限运行")
+    else:
+        logging.warning("未以管理员权限运行，某些功能可能受限")
+except Exception as e:
+    logging.error(f"导入权限检查模块时出错: {str(e)}")
+    
+# 导入PyQt5相关库
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QStatusBar, QLabel, QMessageBox
+from PyQt5.QtCore import QTranslator, QLocale, QSettings, Qt
 from PyQt5.QtGui import QIcon, QPalette, QColor
 
 # 导入各个标签页
@@ -252,10 +288,6 @@ class CursorProGUI(QMainWindow):
         self.setWindowTitle("Cursor Pro")
         self.setWindowIcon(QIcon(os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "logo.png")))
         
-        # 检查管理员权限并显示状态
-        from utils import is_admin
-        admin_status = is_admin()
-        
         # 设置翻译器
         self.translator = QTranslator()
         
@@ -265,12 +297,6 @@ class CursorProGUI(QMainWindow):
         # 初始化UI
         self.init_ui()
         
-        # 根据管理员状态更新界面
-        if admin_status:
-            self.update_status("以管理员权限运行")
-        else:
-            self.update_status("警告：没有管理员权限，部分功能可能受限")
-            
         # 初始化语言设置
         self.init_language()
         
@@ -389,30 +415,64 @@ class CursorProGUI(QMainWindow):
 
 def main():
     """主函数入口"""
-    # 检查管理员权限
-    from utils import ensure_admin
-    # 确保程序以管理员权限运行
-    if not ensure_admin():
-        from PyQt5.QtWidgets import QMessageBox
-        # 如果无法获取管理员权限，显示错误消息
+    try:
+        # 记录应用启动信息
+        is_frozen = getattr(sys, 'frozen', False)
+        current_platform = platform.system()
+        logging.info(f"应用启动 - 打包状态: {'已打包' if is_frozen else '开发环境'}, 平台: {current_platform}")
+        
+        # 处理管理员权限
+        from utils import is_admin
+        admin_status = is_admin()
+        
+        # 创建应用程序实例
         app = QApplication(sys.argv)
-        QMessageBox.critical(None, "权限错误", 
-            "本程序需要管理员权限才能正常运行。\n"
-            "请右键点击程序，选择\"以管理员身份运行\"或\"Run as Administrator\"。")
-        sys.exit(1)
-    
-    # 创建应用程序
-    app = QApplication(sys.argv)
-    
-    # 应用样式表
-    app.setStyleSheet(STYLE_SHEET)
-    
-    # 创建主窗口
-    window = CursorProGUI()
-    window.show()
-    
-    # 运行应用程序事件循环
-    sys.exit(app.exec_())
+        
+        # 如果未以管理员权限运行且不是打包状态，显示警告
+        # 注意：如果是打包状态，打包器设置应该已经请求了管理员权限
+        if not admin_status and not is_frozen:
+            msg_box = QMessageBox()
+            msg_box.setIcon(QMessageBox.Warning)
+            msg_box.setWindowTitle("权限警告")
+            msg_box.setText("应用程序未以管理员权限运行，部分功能可能不可用。")
+            msg_box.setInformativeText("要获得完整功能，请以管理员身份运行此应用程序。")
+            msg_box.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+            
+            # 用户选择取消，则退出
+            if msg_box.exec_() == QMessageBox.Cancel:
+                return 1
+        
+        # 平台特定设置
+        if current_platform == 'Darwin':  # macOS
+            app.setAttribute(Qt.AA_UseHighDpiPixmaps)
+            app.setAttribute(Qt.AA_DontUseNativeMenuBar, True)
+            
+            # 如果是打包后的应用，设置应用名称
+            if is_frozen:
+                app.setApplicationName("CursorProGUI")
+                
+        # 应用样式表
+        app.setStyleSheet(STYLE_SHEET)
+        
+        # 创建主窗口
+        window = CursorProGUI()
+        
+        # 根据管理员状态更新状态栏
+        if admin_status:
+            window.update_status("以管理员权限运行")
+        else:
+            window.update_status("警告：未以管理员权限运行，部分功能可能受限")
+        
+        # 显示主窗口
+        window.show()
+        logging.info("应用主窗口已显示")
+        
+        # 运行应用程序事件循环
+        return app.exec_()
+    except Exception as e:
+        logging.error(f"应用启动失败: {str(e)}")
+        logging.exception("发生异常:")
+        return 1
 
 if __name__ == "__main__":
-    main() 
+    sys.exit(main()) 

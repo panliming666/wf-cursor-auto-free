@@ -215,7 +215,8 @@ class Language:
                 "processing_request": "正在处理请求...",
                 "request_completed": "请求已完成",
                 "connection_failed": "连接失败",
-                "retrying_connection": "正在重新连接..."
+                "retrying_connection": "正在重新连接...",
+                "login_not_completed": "登录还未完成，请稍等..."
             },
             "en": {
                 # System messages
@@ -428,7 +429,8 @@ class Language:
                 "processing_request": "Processing request...",
                 "request_completed": "Request completed",
                 "connection_failed": "Connection failed",
-                "retrying_connection": "Retrying connection..."
+                "retrying_connection": "Retrying connection...",
+                "login_not_completed": "please wait a minutes"
             }
         }
     

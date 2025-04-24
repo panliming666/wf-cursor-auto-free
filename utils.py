@@ -6,6 +6,8 @@ import subprocess
 import ctypes
 import sys
 import traceback
+import time
+import logging
 
 def is_admin():
     """
@@ -50,12 +52,31 @@ def restart_as_admin():
             
         elif platform.system() == "Darwin":  # macOS
             # macOS 下使用 osascript 执行AppleScript以获取管理员权限
+            # 先正确转义脚本路径中可能存在的引号
+            escaped_script = script.replace('"', '\\"')
+            python_escaped = sys.executable.replace('"', '\\"')
+            
+            # 简化参数，只使用--elevated标记
+            args_str = "--elevated"
+            
+            # 使用简洁的AppleScript命令
             cmd = [
                 'osascript', '-e', 
-                'do shell script "' + sys.executable + ' \\"' + script + '\\" ' + ' '.join(args) + '" with administrator privileges'
+                f'do shell script "{python_escaped} \\"{escaped_script}\\" {args_str}" with administrator privileges'
             ]
-            subprocess.Popen(cmd)
-            return True
+            
+            try:
+                # 使用Popen异步启动进程，不等待结果，加速启动
+                subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # 直接返回成功，不等待结果
+                return True
+            except Exception as e:
+                # 出错时尝试备用方法
+                try:
+                    subprocess.Popen(['sudo', sys.executable, script, "--elevated"])
+                    return True
+                except:
+                    return False
             
         else:  # Linux
             # Linux下使用pkexec, sudo或gksu
@@ -320,4 +341,125 @@ def get_random_wait_time(config, timing_key):
         
     except (ValueError, TypeError, AttributeError):
         # Return default value if any error occurs
-        return random.uniform(0.5, 1.5) 
+        return random.uniform(0.5, 1.5)
+
+def request_admin_for_task(task_description="执行系统操作", silent=False):
+    """
+    在需要执行特定需要管理员权限的任务时请求提升权限
+    
+    Args:
+        task_description: 需要权限的任务描述，显示给用户
+        silent: 是否静默模式（不显示弹窗）
+    
+    Returns:
+        bool: 如果当前已有管理员权限或成功获取权限则返回True，否则返回False
+    """
+    if is_admin():
+        return True
+    
+    # 使用platform模块来判断当前系统
+    system = platform.system()
+    
+    try:
+        # 获取当前程序路径和参数
+        script = sys.argv[0]
+        args = list(sys.argv[1:])  # 转换为列表以便修改
+        
+        # 清理参数，移除可能存在的elevated和task标志及其值
+        # 以避免重复添加相同参数
+        for flag in ["--elevated", "--task", "--silent"]:
+            if flag in args:
+                idx = args.index(flag)
+                # 如果flag后面有值（task的情况），也删除值
+                if flag == "--task" and idx + 1 < len(args) and not args[idx + 1].startswith("--"):
+                    args.pop(idx + 1)
+                args.pop(idx)
+        
+        # 构建新的参数列表
+        new_args = args.copy()
+        new_args.append("--elevated")
+        new_args.extend(["--task", task_description])
+        if silent:
+            new_args.append("--silent")
+        
+        # 构建新的命令行参数字符串，正确处理包含空格的参数
+        args_str = " ".join([f'"{arg}"' if " " in arg else arg for arg in new_args])
+        
+        # 根据不同操作系统执行提权操作
+        if system == "Windows":
+            # Windows系统下使用ShellExecute提升权限
+            execute_result = ctypes.windll.shell32.ShellExecuteW(
+                None,
+                "runas",
+                sys.executable,
+                f'"{script}" {args_str}',
+                None,
+                1 if not silent else 0  # 0 表示隐藏窗口，1 表示正常显示
+            )
+            # 返回值大于32表示成功启动
+            return execute_result > 32
+            
+        elif system == "Darwin":  # macOS
+            # 优先使用Python可执行文件的绝对路径，避免路径问题
+            python_path = sys.executable
+            
+            # 转义脚本路径中可能存在的引号
+            escaped_script = script.replace('"', '\\"')
+            python_escaped = python_path.replace('"', '\\"')
+            
+            # 简化参数，只使用必要的标记
+            args_str = "--elevated"
+            
+            # 构建AppleScript命令
+            cmd = [
+                'osascript', '-e', 
+                f'do shell script "{python_escaped} \\"{escaped_script}\\" {args_str}" with administrator privileges'
+            ]
+            
+            try:
+                # 异步启动进程，不等待结果，加速启动
+                subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # 直接返回成功
+                return True
+            except Exception:
+                # 出错时尝试备用方法
+                try:
+                    # 备用方法：使用sudo命令
+                    backup_cmd = ['sudo', python_path, script, "--elevated"]
+                    subprocess.Popen(backup_cmd)
+                    return True
+                except:
+                    return False
+            
+        else:  # Linux
+            # 尝试使用可用的提权工具
+            for tool in ["pkexec", "gksudo", "kdesudo", "sudo"]:
+                try:
+                    if subprocess.call(["which", tool], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+                        # 构建命令
+                        cmd = [tool, sys.executable, script] + new_args
+                        # 启动进程
+                        if silent:
+                            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        else:
+                            process = subprocess.Popen(cmd)
+                        # 对于sudo来说，可能需要在控制台输入密码
+                        if tool == "sudo":
+                            # 只返回进程是否成功启动
+                            return process.poll() is None
+                        else:
+                            # 短暂等待，看进程是否正常启动
+                            time.sleep(0.5)
+                            return process.poll() is None
+                except Exception as e:
+                    logging.error(f"使用{tool}提权失败: {str(e)}")
+                    continue
+                    
+        # 如果所有尝试都失败
+        logging.error("所有提权方式均失败")
+        return False
+            
+    except Exception as e:
+        logging.error(f"请求管理员权限时出错: {str(e)}")
+        traceback.print_exc()
+        return False 
